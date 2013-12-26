@@ -3,9 +3,10 @@
 #include <iostream>
 
 #include <boost/bind.hpp>
+#include <boost/thread.hpp>
 
 #include "common.hh"
-#include "TcpServer.hh"
+#include "TcpServerMT.hh"
 
 using namespace boost::asio::ip;
 using namespace std;
@@ -51,7 +52,8 @@ void TcpSession::handleRead(const boost::system::error_code& error, size_t bytes
     return;
   }
 
-  cout << "TcpSession::handleRead: errorCode " << error << " bytes read " << bytes_transferred << endl;
+  cout << "[" << boost::this_thread::get_id() << "] "
+       << "TcpSession::handleRead: errorCode " << error << " bytes read " << bytes_transferred << endl;
 
   if(!error)
   {
@@ -74,7 +76,9 @@ void TcpSession::handleRead(const boost::system::error_code& error, size_t bytes
 void TcpSession::handleWrite(const boost::system::error_code& error, size_t bytes_transferred)
 {
   // A write was performed, now kick-off another read
-  cout << "TcpSession::handleWrite: errorCode " << error << " bytes written " << bytes_transferred << endl;
+  cout << "[" << boost::this_thread::get_id() << "] "
+       << "TcpSession::handleWrite: errorCode " << error << " bytes written " << bytes_transferred << endl;
+
   if (!error)
   {
     cout << "\tresponse: " << message_ << endl;
@@ -90,33 +94,34 @@ void TcpSession::handleWrite(const boost::system::error_code& error, size_t byte
 }
 
 //
-// TcpServer
+// TcpServerMT
 //
 
-TcpServer::TcpServer(boost::asio::io_service& io_service, uint16_t tcpListenPort) :
+TcpServerMT::TcpServerMT(boost::asio::io_service& io_service, uint16_t tcpListenPort) :
       acceptor_(io_service, tcp::endpoint(tcp::v4(), tcpListenPort))
 {
-  startAccept();
 }
 
-void TcpServer::startAccept()
+void TcpServerMT::startAccept()
 {
   TcpSession::shared_pointer newSession =
     TcpSession::create(acceptor_.get_io_service());
 
-  // When the connection is accepted, a call to TcpServer::handleAccept will be made
+  // When the connection is accepted, a call to TcpServerMT::handleAccept will be made
   acceptor_.async_accept(newSession->socket(),
-      boost::bind(&TcpServer::handleAccept, this, newSession,
+      boost::bind(&TcpServerMT::handleAccept, this, newSession,
                   boost::asio::placeholders::error));
 }
 
-void TcpServer::handleAccept(TcpSession::shared_pointer newSession, const boost::system::error_code& error)
+void TcpServerMT::handleAccept(TcpSession::shared_pointer newSession, const boost::system::error_code& error)
 {
   // A client connected
 
   if (!error)
   {
-    cout << "Accepted a client connection from: " << newSession->socket().remote_endpoint() << endl;
+    cout << "[" << boost::this_thread::get_id() << "] "
+         << "Accepted a client connection from: " << newSession->socket().remote_endpoint() << endl;
+
     // This will cause the connection to start reading and writing
     newSession->start();
   }
