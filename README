@@ -1,0 +1,5 @@
+Example programs to play with the boost asio and the differences between
+synchronous and asynchronous clients and servers.
+
+The client and server is quite simple, its a simple reverse echo server, 
+echoing the received words in reverse order. Words are white-space delimited.
