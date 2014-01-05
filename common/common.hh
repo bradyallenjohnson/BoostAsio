@@ -1,4 +1,5 @@
 
+#include <stdint.h>
 #include <string>
 
 const int maxLength = 1024;

@@ -15,19 +15,21 @@ using namespace std;
 // TcpSession
 //
 
-TcpSession::TcpSession(boost::asio::io_service &io_service) : socket_(io_service)
+TcpSession::TcpSession(boost::asio::io_service &io_service, int sessionId) :
+    socket_(io_service),
+    sessionId_(sessionId)
 {
 }
 
 TcpSession::~TcpSession()
 {
-  cout << "Destroying TcpSession with: " << socket_.remote_endpoint() << endl;
+  cout << "Destroying TcpSession[" << sessionId_ << "] with: " << socket_.remote_endpoint() << endl;
 }
 
 // static
-TcpSession::shared_pointer TcpSession::create(boost::asio::io_service& io_service)
+TcpSession::shared_pointer TcpSession::create(boost::asio::io_service& io_service, int sessionId)
 {
-  return shared_pointer(new TcpSession(io_service));
+  return shared_pointer(new TcpSession(io_service, sessionId));
 }
 
 void TcpSession::start()
@@ -45,7 +47,7 @@ void TcpSession::handleRead(const boost::system::error_code& error, size_t bytes
 
   if(error == boost::asio::error::eof)
   {
-    cout << "TcpSession::handleRead: Client disconnected from server" << endl;
+    cout << "TcpSession::handleRead[" << sessionId_ << "] Client disconnected from server" << endl;
     // connection closed cleanly by peer
     // Returning will cause this TcpSession to be destroyed by the shared_ptr
     // since noone else has a reference to it
@@ -53,7 +55,7 @@ void TcpSession::handleRead(const boost::system::error_code& error, size_t bytes
   }
 
   cout << "[" << boost::this_thread::get_id() << "] "
-       << "TcpSession::handleRead: errorCode " << error << " bytes read " << bytes_transferred << endl;
+       << "TcpSession::handleRead[" << sessionId_ << "] errorCode " << error << " bytes read " << bytes_transferred << endl;
 
   if(!error)
   {
@@ -77,7 +79,7 @@ void TcpSession::handleWrite(const boost::system::error_code& error, size_t byte
 {
   // A write was performed, now kick-off another read
   cout << "[" << boost::this_thread::get_id() << "] "
-       << "TcpSession::handleWrite: errorCode " << error << " bytes written " << bytes_transferred << endl;
+       << "TcpSession::handleWrite[" << sessionId_ << "] errorCode " << error << " bytes written " << bytes_transferred << endl;
 
   if (!error)
   {
@@ -97,15 +99,18 @@ void TcpSession::handleWrite(const boost::system::error_code& error, size_t byte
 // TcpServerMT
 //
 
-TcpServerMT::TcpServerMT(boost::asio::io_service& io_service, uint16_t tcpListenPort) :
-      acceptor_(io_service, tcp::endpoint(tcp::v4(), tcpListenPort))
+TcpServerMT::TcpServerMT(boost::asio::io_service& io_service_acceptor,
+                         boost::asio::io_service& io_service_comm,
+                         uint16_t tcpListenPort) :
+      io_service_comm_(io_service_comm),
+      acceptor_(io_service_acceptor, tcp::endpoint(tcp::v4(), tcpListenPort))
 {
 }
 
 void TcpServerMT::startAccept()
 {
-  TcpSession::shared_pointer newSession =
-    TcpSession::create(acceptor_.get_io_service());
+  static int sessionId = 0;
+  TcpSession::shared_pointer newSession = TcpSession::create(io_service_comm_, sessionId++);
 
   // When the connection is accepted, a call to TcpServerMT::handleAccept will be made
   acceptor_.async_accept(newSession->socket(),

@@ -3,11 +3,15 @@ import os
 
 env = Environment()
 
+# At work we have boost installed elsewhere
 boost_path = '/tsp/projects/sapc_CBA/design/environment/boost-1.46.1'
+if os.path.exists(boost_path):
+    env.Append(CPPPATH=os.path.join(boost_path, 'include'))
+    env.Append(LIBPATH=os.path.join(boost_path, 'lib'))
 
 env.Append(CPPFLAGS=['-g'])
-env.Append(CPPPATH=[os.path.join(boost_path, 'include'), 'common'])
-env.Append(LIBPATH=[os.path.join(boost_path, 'lib'), 'lib'])
+env.Append(CPPPATH='common')
+env.Append(LIBPATH='lib')
 env.Append(LIBS=['common', 'boost_system', 'boost_program_options', 'boost_thread'])
 env.Append(RPATH=[os.path.join(boost_path, 'lib')])
 

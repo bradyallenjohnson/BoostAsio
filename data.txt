@@ -1,2 +1,7 @@
 this is an example input file
 and here is another line
+asdfasdf ñlkjñlkjñlkj
+qwerqwerqwerqwer oiuoiu xcvbxcvbxcvb
+12341234 ouou 89769876 mnbmnb
+wlrtjkhwelrtjkhwelrtkjhwerlktjhwerltkjhwerltkjjerkh 987987987
+thats enough garbage for now

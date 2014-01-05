@@ -1,6 +1,7 @@
 bin/*
 lib/*
 *.o
+*.swp
 .cproject
 .project
 .pydevproject
